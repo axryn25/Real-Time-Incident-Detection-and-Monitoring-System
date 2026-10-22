@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incident Details — Sentinel Incident Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <h1><a href="index.html">SENTINEL</a></h1>
+        <p>Real-Time Incident Detection &amp; Monitoring System</p>
+      </div>
+      <nav>
+        <a href="index.html">Dashboard</a>
+        <a href="incidents.html" class="active">All Incidents</a>
+        <div id="connection-pill" class="connection-pill">
+          <span class="connection-dot"></span>
+          <span id="connection-text">Connecting...</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main id="incident-details-container">
+    <div style="margin-bottom: 1rem;">
+      <a href="incidents.html" class="btn btn-secondary btn-sm">&larr; Back to Incidents List</a>
+    </div>
+
+    <!-- Alert / Error Banner -->
+    <div id="details-alert" class="alert" style="display: none;"></div>
+
+    <!-- Dynamic Content Area -->
+    <div id="details-content" style="display: none;">
+      
+      <!-- Incident Overview Card -->
+      <section class="card">
+        <div class="page-header" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+          <div>
+            <h2 id="inc-title" class="page-title">Loading Incident...</h2>
+            <p class="page-subtitle">RethinkDB Document ID: <span id="inc-id" class="detail-value mono">--</span></p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="inc-severity"></span>
+            <span id="inc-status"></span>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Affected Service</span>
+            <span id="inc-service" class="detail-value">--</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Aggregated Event Count</span>
+            <span id="inc-count" class="detail-value">--</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">First Detected</span>
+            <span id="inc-first-seen" class="detail-value">--</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Last Updated / Seen</span>
+            <span id="inc-last-seen" class="detail-value">--</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Resolved At</span>
+            <span id="inc-resolved-at" class="detail-value">--</span>
+          </div>
+        </div>
+
+        <!-- Failure Messages -->
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="detail-item">
+            <span class="detail-label">Initial Error Message</span>
+            <div id="inc-first-msg" class="detail-value" style="font-size: 0.95rem; color: #334155;">--</div>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Most Recent Error Message</span>
+            <div id="inc-last-msg" class="detail-value" style="font-size: 0.95rem; color: #334155;">--</div>
+          </div>
+          <div id="row-recovery-msg" class="detail-item" style="display: none;">
+            <span class="detail-label">Recovery Message</span>
+            <div id="inc-recovery-msg" class="detail-value" style="font-size: 0.95rem; color: #166534; font-weight: 500;">--</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Incident Lifecycle Controls -->
+      <section class="card">
+        <h3 class="card-title">Incident Lifecycle Management</h3>
+        <div class="actions-panel">
+          <div>
+            <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem;">Status Progression: OPEN &rarr; ACKNOWLEDGED &rarr; RESOLVED</div>
+            <div id="lifecycle-notice" style="font-size: 0.85rem; color: var(--text-muted);">
+              Updating status synchronizes directly to RethinkDB via Express API.
+            </div>
+          </div>
+          <div class="actions-buttons">
+            <button id="btn-ack" class="btn btn-warning">Acknowledge Incident</button>
+            <button id="btn-resolve" class="btn btn-success">Resolve Incident</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aggregated Events & Milestones Section -->
+      <section class="card">
+        <h3 class="card-title">Aggregated Event Summary &amp; Milestones</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+          <strong>Data Model Notice:</strong> In this incident management module, repeated failure events within the 5-minute window are aggregated directly into this single RethinkDB document. Individual intermediate events are not stored in a separate table; the system tracks the initial detection, total occurrence count, latest failure message, and resolution details.
+        </p>
+        <div class="table-responsive">
+          <table id="events-table">
+            <thead>
+              <tr>
+                <th>Event Milestone</th>
+                <th>Observed Timestamp</th>
+                <th>Occurrences Tracked</th>
+                <th>Recorded Message</th>
+              </tr>
+            </thead>
+            <tbody id="events-table-body">
+              <!-- Rendered via script.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    Sentinel Real-Time Incident Management &bull; College DBMS Case Study &bull; Powered by RethinkDB Changefeeds
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

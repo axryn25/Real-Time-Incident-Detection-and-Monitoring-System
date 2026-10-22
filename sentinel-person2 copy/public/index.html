@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel — Incident Monitoring Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <h1><a href="index.html">SENTINEL</a></h1>
+        <p>Real-Time Incident Detection &amp; Monitoring System</p>
+      </div>
+      <nav>
+        <a href="index.html" class="active">Dashboard</a>
+        <a href="incidents.html">All Incidents</a>
+        <div id="connection-pill" class="connection-pill">
+          <span class="connection-dot"></span>
+          <span id="connection-text">Connecting...</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main>
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Operational Overview</h2>
+        <p class="page-subtitle">RethinkDB real-time metrics and incident lifecycle tracking</p>
+      </div>
+      <div>
+        <a href="incidents.html" class="btn btn-primary">View All Incidents &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Alert / Error Banner -->
+    <div id="dashboard-alert" class="alert" style="display: none;"></div>
+
+    <!-- Real-time Database Metric Cards -->
+    <section class="metrics-grid" id="metrics-container">
+      <div class="metric-card total">
+        <span class="metric-label">Total Incidents</span>
+        <span id="metric-total" class="metric-value">--</span>
+      </div>
+      <div class="metric-card open">
+        <span class="metric-label">Open Incidents</span>
+        <span id="metric-open" class="metric-value">--</span>
+      </div>
+      <div class="metric-card acknowledged">
+        <span class="metric-label">Acknowledged</span>
+        <span id="metric-ack" class="metric-value">--</span>
+      </div>
+      <div class="metric-card resolved">
+        <span class="metric-label">Resolved</span>
+        <span id="metric-res" class="metric-value">--</span>
+      </div>
+    </section>
+
+    <!-- Recent Incidents Table Card -->
+    <section class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+        <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">Recent Incidents</h3>
+        <a href="incidents.html" style="font-size: 0.88rem; color: var(--accent); font-weight: 600; text-decoration: none;">See all &rarr;</a>
+      </div>
+
+      <div class="table-responsive" style="border: none; border-radius: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Incident Title / Type</th>
+              <th>Service</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>Last Seen</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="recent-incidents-body">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 2rem; color: #64748b;">
+                Loading recent incidents...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DBMS Architecture Info Box for Presentation -->
+    <section class="card" style="background-color: #f8fafc;">
+      <h3 class="card-title" style="font-size: 1rem;">DBMS Project Note &bull; Grouping &amp; Changefeeds</h3>
+      <div style="font-size: 0.88rem; color: #475569; line-height: 1.6;">
+        <p style="margin-bottom: 0.5rem;">
+          <strong>Data Consistency:</strong> High-frequency failure events arriving at <code>POST /api/events</code> for the same service and type within 5 minutes are grouped atomically into a single RethinkDB document using an atomic update with an in-process lock.
+        </p>
+        <p>
+          <strong>Real-Time Synchronization:</strong> The browser maintains a Server-Sent Events (SSE) connection to <code>GET /api/incidents/stream</code>. Express listens to RethinkDB's native <code>r.table('incidents').changes()</code> changefeed and pushes mutations instantly to this frontend without manual polling.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Sentinel Real-Time Incident Management &bull; College DBMS Case Study &bull; Powered by RethinkDB Changefeeds
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

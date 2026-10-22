@@ -1,0 +1,231 @@
+const { r, getConnection } = require('./database');
+
+const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const VALID_STATUSES = ['OPEN', 'ACKNOWLEDGED', 'RESOLVED'];
+const TRANSITIONS = {
+  OPEN: ['ACKNOWLEDGED', 'RESOLVED'],
+  ACKNOWLEDGED: ['OPEN', 'RESOLVED'],
+  RESOLVED: []
+};
+
+// Serializes events with the same service/type inside this Node process.
+// This prevents two simultaneous first events from creating duplicate incidents
+// in our single-instance coursework prototype.
+const pendingByKey = new Map();
+
+function withKeyLock(key, task) {
+  const previous = pendingByKey.get(key) || Promise.resolve();
+  const current = previous.catch(() => {}).then(task);
+  pendingByKey.set(key, current);
+  return current.finally(() => {
+    if (pendingByKey.get(key) === current) pendingByKey.delete(key);
+  });
+}
+
+function validateEvent(event) {
+  if (!event || typeof event !== 'object') throw new Error('Event body must be an object.');
+
+  const service = typeof event.service === 'string' ? event.service.trim() : '';
+  if (!service) throw new Error('service must be a non-empty string.');
+
+  const type = typeof event.type === 'string' ? event.type.trim() : '';
+  if (!type) throw new Error('type must be a non-empty string.');
+
+  const severity = String(event.severity || 'MEDIUM').trim().toUpperCase();
+  if (!SEVERITIES.includes(severity)) {
+    throw new Error(`severity must be one of: ${SEVERITIES.join(', ')}.`);
+  }
+
+  const action = String(event.action || 'FAILURE').trim().toUpperCase();
+  if (!['FAILURE', 'RECOVERY'].includes(action)) {
+    throw new Error('action must be FAILURE or RECOVERY.');
+  }
+
+  const timestamp = event.timestamp ? new Date(event.timestamp) : new Date();
+  if (Number.isNaN(timestamp.getTime())) throw new Error('timestamp must be a valid date.');
+
+  return {
+    service,
+    type,
+    severity,
+    action,
+    timestamp: timestamp.toISOString(),
+    message: event.message ? String(event.message).trim() : ''
+  };
+}
+
+async function findRecentActiveIncident(event, windowMinutes) {
+  const connection = getConnection();
+  const cutoff = new Date(Date.parse(event.timestamp) - windowMinutes * 60 * 1000).toISOString();
+
+  // Use the service index first, then narrow by type, state, and time window.
+  const cursor = await r.table('incidents')
+    .getAll(event.service, { index: 'service' })
+    .filter(function (incident) {
+      return incident('type').eq(event.type)
+        .and(incident('status').ne('RESOLVED'))
+        .and(incident('lastSeen').ge(cutoff));
+    })
+    .orderBy(r.desc('lastSeen'))
+    .limit(1)
+    .run(connection);
+
+  const matches = await cursor.toArray();
+  return matches.length ? matches[0] : null;
+}
+
+async function resolveForRecovery(event) {
+  const connection = getConnection();
+  const incident = await findRecentActiveIncident(event, 50 * 365 * 24 * 60); // broad enough for this prototype
+  if (!incident) {
+    return { action: 'NO_ACTIVE_INCIDENT', incident: null };
+  }
+
+  const now = new Date().toISOString();
+  await r.table('incidents').get(incident.id).update({
+    status: 'RESOLVED',
+    resolvedAt: now,
+    lastSeen: event.timestamp,
+    updatedAt: now,
+    recoveryMessage: event.message || 'Recovery event received'
+  }).run(connection);
+
+  const updated = await r.table('incidents').get(incident.id).run(connection);
+  return { action: 'RESOLVED_BY_RECOVERY', incident: updated };
+}
+
+async function processEvent(rawEvent) {
+  const event = validateEvent(rawEvent);
+  const connection = getConnection();
+  const windowMinutes = Number(process.env.INCIDENT_WINDOW_MINUTES || 5);
+  const lockKey = `${event.service}::${event.type}`;
+
+  return withKeyLock(lockKey, async () => {
+    if (event.action === 'RECOVERY') return resolveForRecovery(event);
+
+    const existing = await findRecentActiveIncident(event, windowMinutes);
+    const now = new Date().toISOString();
+
+    if (existing) {
+      // RethinkDB applies this update atomically to the existing incident.
+      await r.table('incidents').get(existing.id).update(function (incident) {
+        return {
+          occurrenceCount: incident('occurrenceCount').add(1),
+          lastSeen: r.max(incident('lastSeen'), event.timestamp),
+          updatedAt: now,
+          severity: event.severity,
+          lastMessage: event.message
+        };
+      }).run(connection);
+
+      const updated = await r.table('incidents').get(existing.id).run(connection);
+      return { action: 'GROUPED_WITH_EXISTING', incident: updated };
+    }
+
+    const newIncident = {
+      service: event.service,
+      type: event.type,
+      severity: event.severity,
+      status: 'OPEN',
+      occurrenceCount: 1,
+      firstSeen: event.timestamp,
+      lastSeen: event.timestamp,
+      createdAt: now,
+      updatedAt: now,
+      resolvedAt: null,
+      firstMessage: event.message,
+      lastMessage: event.message
+    };
+
+    const result = await r.table('incidents').insert(newIncident).run(connection);
+    const incident = await r.table('incidents').get(result.generated_keys[0]).run(connection);
+    return { action: 'CREATED_NEW_INCIDENT', incident };
+  });
+}
+
+async function updateIncidentStatus(id, nextStatus) {
+  const connection = getConnection();
+  const status = String(nextStatus || '').trim().toUpperCase();
+  if (!VALID_STATUSES.includes(status)) {
+    const error = new Error(`status must be one of: ${VALID_STATUSES.join(', ')}.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const incident = await r.table('incidents').get(id).run(connection);
+  if (!incident) {
+    const error = new Error('Incident not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (!TRANSITIONS[incident.status].includes(status)) {
+    const error = new Error(`Invalid status transition: ${incident.status} -> ${status}.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const now = new Date().toISOString();
+  const patch = { status, updatedAt: now };
+  if (status === 'RESOLVED') patch.resolvedAt = now;
+  if (status !== 'RESOLVED') patch.resolvedAt = null;
+
+  // Safer status update: verify status hasn't changed concurrently
+  const updateResult = await r.table('incidents')
+    .filter(r.row('id').eq(id).and(r.row('status').eq(incident.status)))
+    .update(patch)
+    .run(connection);
+
+  if (updateResult.replaced === 0) {
+    const latest = await r.table('incidents').get(id).run(connection);
+    if (!latest) {
+      const error = new Error('Incident not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+    const error = new Error(`Status update conflict: incident was concurrently updated to ${latest.status}.`);
+    error.statusCode = 409;
+    throw error;
+  }
+
+  return r.table('incidents').get(id).run(connection);
+}
+
+async function listIncidents(filters = {}) {
+  const connection = getConnection();
+  let query = r.table('incidents');
+
+  if (filters.service) {
+    query = query.getAll(String(filters.service).trim(), { index: 'service' });
+    if (filters.status) {
+      const status = String(filters.status).trim().toUpperCase();
+      query = query.filter({ status });
+    }
+  } else if (filters.status) {
+    // Utilize secondary index on status when filtering by status alone
+    const status = String(filters.status).trim().toUpperCase();
+    query = query.getAll(status, { index: 'status' });
+  }
+
+  if (filters.severity) {
+    const severity = String(filters.severity).trim().toUpperCase();
+    query = query.filter({ severity });
+  }
+
+  const cursor = await query.orderBy(r.desc('lastSeen')).run(connection);
+  return cursor.toArray();
+}
+
+async function getIncidentById(id) {
+  const connection = getConnection();
+  const incident = await r.table('incidents').get(id).run(connection);
+  return incident;
+}
+
+module.exports = {
+  processEvent,
+  updateIncidentStatus,
+  listIncidents,
+  validateEvent,
+  getIncidentById
+};

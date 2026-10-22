@@ -1,0 +1,37 @@
+2026-10-21T22:10:20.910665000 0.018504s notice: Recursively removing directory /Users/vrishin/Documents/sentinel-person2/rethinkdb_data/tmp
+2026-10-21T22:10:20.912900000 0.020738s notice: Initializing directory /Users/vrishin/Documents/sentinel-person2/rethinkdb_data
+2026-10-21T22:10:20.912998000 0.020836s info: Creating a default database for your convenience. (This is because you ran 'rethinkdb' without 'create', 'serve', or '--join', and the directory '/Users/vrishin/Documents/sentinel-person2/rethinkdb_data' did not already exist or is empty.)
+2026-10-21T22:10:20.913061000 0.020899s notice: Running rethinkdb 2.4.4 (arm64-apple-darwin25.0.0) (CLANG 17.0.0 (clang-1700.3.19.1))...
+2026-10-21T22:10:20.925190000 0.033028s notice: Running on Darwin 27.0.0 arm64
+2026-10-21T22:10:20.925213000 0.033051s notice: Loading data from directory /Users/vrishin/Documents/sentinel-person2/rethinkdb_data
+2026-10-21T22:10:20.978258000 0.086097s info: Automatically using cache size of 1704 MB
+2026-10-21T22:10:20.978695000 0.086533s notice: Listening for intracluster connections on port 29015
+2026-10-21T22:10:20.979409000 0.087247s notice: Listening for client driver connections on port 28015
+2026-10-21T22:10:20.979446000 0.087284s notice: Listening for administrative HTTP connections on port 8080
+2026-10-21T22:10:20.979449000 0.087287s notice: Listening on cluster addresses: 127.0.0.1, ::1
+2026-10-21T22:10:20.979451000 0.087289s notice: Listening on driver addresses: 127.0.0.1, ::1
+2026-10-21T22:10:20.979453000 0.087291s notice: Listening on http addresses: 127.0.0.1, ::1
+2026-10-21T22:10:20.979454000 0.087292s notice: To fully expose RethinkDB on the network, bind to all addresses by running rethinkdb with the `--bind all` command line option.
+2026-10-21T22:10:20.979458000 0.087296s notice: Server ready, "Vrishins_MacBook_Air_local_xdn" 1ce31c03-65ad-4854-8eb2-b657785dc673
+2026-10-21T22:10:54.985947000 34.093788s notice: Server got SIGINT from pid 36907, uid 501; shutting down...
+2026-10-21T22:10:54.986204000 34.094044s notice: Shutting down client connections...
+2026-10-21T22:10:54.986304000 34.094145s notice: All client connections closed.
+2026-10-21T22:10:54.986308000 34.094148s notice: Shutting down storage engine... (This may take a while if you had a lot of unflushed data in the writeback cache.)
+2026-10-21T22:10:54.986777000 34.094618s notice: Storage engine shut down.
+2026-10-21T22:11:13.503800000 0.008384s notice: Running rethinkdb 2.4.4 (arm64-apple-darwin25.0.0) (CLANG 17.0.0 (clang-1700.3.19.1))...
+2026-10-21T22:11:13.515168000 0.019751s notice: Running on Darwin 27.0.0 arm64
+2026-10-21T22:11:13.515220000 0.019803s notice: Loading data from directory /Users/vrishin/Documents/sentinel-person2/rethinkdb_data
+2026-10-21T22:11:13.538181000 0.042764s info: Automatically using cache size of 1622 MB
+2026-10-21T22:11:13.538489000 0.043072s notice: Listening for intracluster connections on port 29015
+2026-10-21T22:11:13.539026000 0.043609s notice: Listening for client driver connections on port 28015
+2026-10-21T22:11:13.539069000 0.043652s notice: Listening for administrative HTTP connections on port 8080
+2026-10-21T22:11:13.539071000 0.043654s notice: Listening on cluster addresses: 127.0.0.1, ::1
+2026-10-21T22:11:13.539072000 0.043656s notice: Listening on driver addresses: 127.0.0.1, ::1
+2026-10-21T22:11:13.539074000 0.043657s notice: Listening on http addresses: 127.0.0.1, ::1
+2026-10-21T22:11:13.539076000 0.043659s notice: To fully expose RethinkDB on the network, bind to all addresses by running rethinkdb with the `--bind all` command line option.
+2026-10-21T22:11:13.539079000 0.043662s notice: Server ready, "Vrishins_MacBook_Air_local_xdn" 1ce31c03-65ad-4854-8eb2-b657785dc673
+2026-10-21T22:19:30.925017000 413.471901s info: Table 7111425e-817d-4063-b8bc-f5bce2565984: Starting a new Raft election for term 1.
+2026-10-21T22:19:30.925129000 413.472013s info: Table 7111425e-817d-4063-b8bc-f5bce2565984: Added replica on this server.
+2026-10-21T22:19:30.933451000 413.480334s info: Table 7111425e-817d-4063-b8bc-f5bce2565984: This server is Raft leader for term 1. Latest log index is 0.
+2026-10-21T22:19:31.435155000 413.982039s info: Table 7111425e-817d-4063-b8bc-f5bce2565984: Configuration is changing.
+2026-10-21T22:19:31.453249000 414.000133s info: Table 7111425e-817d-4063-b8bc-f5bce2565984: Configuration is changing.

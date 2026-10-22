@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Incidents — Sentinel Incident Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <h1><a href="index.html">SENTINEL</a></h1>
+        <p>Real-Time Incident Detection &amp; Monitoring System</p>
+      </div>
+      <nav>
+        <a href="index.html">Dashboard</a>
+        <a href="incidents.html" class="active">All Incidents</a>
+        <div id="connection-pill" class="connection-pill">
+          <span class="connection-dot"></span>
+          <span id="connection-text">Connecting...</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main>
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">All Incidents</h2>
+        <p class="page-subtitle">RethinkDB incident records ordered by most recent failure timestamp</p>
+      </div>
+    </div>
+
+    <!-- Alert / Error Banner -->
+    <div id="incidents-alert" class="alert" style="display: none;"></div>
+
+    <!-- Status Filter Bar -->
+    <div class="filter-bar">
+      <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted); margin-right: 0.5rem;">Filter by Status:</span>
+      <button class="filter-btn active" data-status="ALL">All Incidents</button>
+      <button class="filter-btn" data-status="OPEN">Open</button>
+      <button class="filter-btn" data-status="ACKNOWLEDGED">Acknowledged</button>
+      <button class="filter-btn" data-status="RESOLVED">Resolved</button>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Incident Title / Type</th>
+              <th>Affected Service</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>Grouped Events</th>
+              <th>Last Seen</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="incidents-table-body">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 2rem; color: #64748b;">
+                Loading incidents from RethinkDB...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Sentinel Real-Time Incident Management &bull; College DBMS Case Study &bull; Powered by RethinkDB Changefeeds
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
