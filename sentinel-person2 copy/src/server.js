@@ -12,6 +12,54 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, module: 'incident-management' }));
 
+app.get('/api/service-health', async (_req, res) => {
+  try {
+    const incidents = await listIncidents();
+    const services = {};
+
+    for (const incident of incidents) {
+      const name = incident.service || 'unknown';
+
+      if (!services[name]) {
+        services[name] = {
+          service: name,
+          totalIncidents: 0,
+          openIncidents: 0,
+          criticalIncidents: 0
+        };
+      }
+
+      services[name].totalIncidents++;
+
+      if (incident.status !== 'RESOLVED') {
+        services[name].openIncidents++;
+      }
+
+      if (
+        incident.severity === 'CRITICAL' &&
+        incident.status !== 'RESOLVED'
+      ) {
+        services[name].criticalIncidents++;
+      }
+    }
+
+    const result = Object.values(services).map(service => ({
+      ...service,
+      health: service.openIncidents > 0
+        ? 'Needs Attention'
+        : 'Healthy'
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Service health error:', error.message);
+    res.status(500).json({
+      error: 'Failed to retrieve service health.'
+    });
+  }
+});
+
+
 app.post('/api/events', async (req, res) => {
   try {
     const result = await processEvent(req.body);

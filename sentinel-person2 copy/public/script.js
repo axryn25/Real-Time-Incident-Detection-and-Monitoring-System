@@ -313,12 +313,155 @@ async function initDashboard() {
   await loadDashboardData();
 
   // Listen for live RethinkDB changefeed updates
-  initLiveStream((_change) => {
-    // Whenever an incident is inserted or updated in RethinkDB, refresh counts & recent table
-    loadDashboardData();
-  });
+initLiveStream((_change) => {
+  // Refresh dashboard metrics and recent incidents.
+  loadDashboardData();
+
+  // Refresh service health.
+  loadServiceHealth();
+
+  // Refresh incident analytics.
+  loadIncidentAnalytics();
+});
 }
 
+
+
+  // ==========================================
+  // SERVICE HEALTH LOGIC
+  // ==========================================
+
+  async function loadServiceHealth() {
+    const container = document.getElementById('service-health-container');
+    if (!container) return;
+
+    try {
+      const services = await apiFetch('/api/service-health');
+
+      if (!Array.isArray(services) || services.length === 0) {
+        container.textContent = 'No service health data available.';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      for (const service of services) {
+        const row = document.createElement('div');
+        row.className = 'service-health-row';
+
+        const info = document.createElement('div');
+
+        const name = document.createElement('strong');
+        name.textContent = service.service;
+
+        const details = document.createElement('p');
+        details.textContent =
+          `${service.totalIncidents} total incident(s) · ${service.openIncidents} unresolved`;
+
+        info.append(name, details);
+
+        const status = document.createElement('span');
+        status.className = 'health-status ' +
+          (service.health === 'Healthy' ? 'healthy' : 'attention');
+        status.textContent = service.health;
+
+        row.append(info, status);
+        container.appendChild(row);
+      }
+    } catch (error) {
+      console.error('Service health error:', error);
+      container.textContent = 'Unable to load service health.';
+    }
+  }
+
+// ==========================================
+// INCIDENT ANALYTICS LOGIC
+// ==========================================
+
+async function loadIncidentAnalytics() {
+  const severityContainer =
+    document.getElementById('severity-analytics');
+
+  const serviceContainer =
+    document.getElementById('service-analytics');
+
+  // Skip if the analytics panel does not exist on this page.
+  if (!severityContainer || !serviceContainer) return;
+
+  try {
+    const incidents = await apiFetch('/api/incidents');
+
+    if (!Array.isArray(incidents)) {
+      throw new Error('Unexpected incident data format.');
+    }
+
+    // Count incidents by severity.
+    const severityCounts = {
+      LOW: 0,
+      MEDIUM: 0,
+      HIGH: 0,
+      CRITICAL: 0
+    };
+
+    // Count incidents by service.
+    const serviceCounts = {};
+
+    for (const incident of incidents) {
+      const severity = String(
+        incident.severity || 'MEDIUM'
+      ).toUpperCase();
+
+      severityCounts[severity] =
+        (severityCounts[severity] || 0) + 1;
+
+      const service = incident.service || 'Unknown';
+
+      serviceCounts[service] =
+        (serviceCounts[service] || 0) + 1;
+    }
+
+    // Safely render counts into the page.
+    function renderCounts(container, counts) {
+      container.replaceChildren();
+
+      const entries = Object.entries(counts);
+
+      if (
+        entries.length === 0 ||
+        entries.every(([, count]) => count === 0)
+      ) {
+        container.textContent = 'No incidents recorded yet.';
+        return;
+      }
+
+      for (const [label, count] of entries) {
+        const row = document.createElement('div');
+        row.className = 'analytics-row';
+
+        const name = document.createElement('span');
+        name.textContent = label;
+
+        const value = document.createElement('strong');
+        value.textContent = String(count);
+
+        row.append(name, value);
+        container.appendChild(row);
+      }
+    }
+
+    renderCounts(severityContainer, severityCounts);
+    renderCounts(serviceContainer, serviceCounts);
+
+  } catch (error) {
+    console.error('Incident analytics error:', error);
+
+    severityContainer.textContent =
+      'Unable to load analytics.';
+
+    serviceContainer.textContent =
+      'Unable to load analytics.';
+  }
+}
 // ==========================================
 // 3. PAGE B: ALL INCIDENTS LOGIC (incidents.html)
 // ==========================================
@@ -798,9 +941,24 @@ async function initIncidentDetails() {
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('metric-total')) {
-    initDashboard();
-  } else if (document.getElementById('incidents-table-body')) {
+if (document.getElementById('metric-total')) {
+  initDashboard();
+
+  // Load service health and analytics.
+  loadServiceHealth();
+  loadIncidentAnalytics();
+
+  // Keep the existing manual service-health refresh.
+  const refreshButton =
+    document.getElementById('refresh-health-btn');
+
+  if (refreshButton) {
+    refreshButton.addEventListener(
+      'click',
+      loadServiceHealth
+    );
+  }
+} else if (document.getElementById('incidents-table-body')) {
     initIncidentsList();
   } else if (document.getElementById('incident-details-container')) {
     initIncidentDetails();
