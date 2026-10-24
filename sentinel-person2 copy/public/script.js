@@ -964,3 +964,111 @@ if (document.getElementById('metric-total')) {
     initIncidentDetails();
   }
 });
+
+
+
+/* Report Incident form integration */
+(() => {
+  function initReportIncidentForm() {
+    const modal = document.getElementById("report-incident-modal");
+    const openButton = document.getElementById("report-incident-btn");
+    const closeButton = document.getElementById("close-report-incident");
+    const cancelButton = document.getElementById("cancel-report-incident");
+    const form = document.getElementById("report-incident-form");
+    const submitButton = document.getElementById("submit-report-incident");
+    const feedback = document.getElementById("report-incident-feedback");
+
+    if (!modal || !openButton || !form || !submitButton || !feedback) return;
+
+    const setFeedback = (message, state) => {
+      feedback.textContent = message;
+      feedback.dataset.state = state || "info";
+    };
+
+    const closeModal = () => {
+      if (submitButton.disabled) return;
+      modal.hidden = true;
+      openButton.focus();
+    };
+
+    openButton.addEventListener("click", () => {
+      modal.hidden = false;
+      form.elements.service.focus();
+    });
+
+    closeButton?.addEventListener("click", closeModal);
+    cancelButton?.addEventListener("click", closeModal);
+
+    modal.querySelector("[data-close-report]")?.addEventListener("click", closeModal);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeModal();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+
+      const incident = {
+        service: form.elements.service.value.trim(),
+        type: form.elements.type.value.trim(),
+        severity: form.elements.severity.value,
+        message: form.elements.message.value.trim()
+      };
+
+      if (!incident.service || !incident.type || !incident.message) {
+        setFeedback("Please complete all fields.", "error");
+        return;
+      }
+
+      if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(incident.severity)) {
+        setFeedback("Choose a valid severity.", "error");
+        return;
+      }
+
+      submitButton.disabled = true;
+      setFeedback("Submitting incident…", "info");
+
+      try {
+        const response = await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(incident)
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            result.error || result.message || `Request failed (${response.status})`
+          );
+        }
+
+        setFeedback("Incident submitted successfully.", "success");
+
+        // The existing SSE changefeed should refresh the dashboard.
+        // Refresh service health too if the existing function is globally exposed.
+        if (typeof window.loadServiceHealth === "function") {
+          window.loadServiceHealth();
+        }
+
+        window.setTimeout(() => {
+          modal.hidden = true;
+          form.reset();
+          setFeedback("", "info");
+          openButton.focus();
+        }, 1000);
+      } catch (error) {
+        setFeedback(error.message || "Unable to submit incident.", "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initReportIncidentForm);
+  } else {
+    initReportIncidentForm();
+  }
+})();

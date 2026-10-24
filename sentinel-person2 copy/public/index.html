@@ -29,7 +29,15 @@
         <h1 class="page-title">Operational Overview</h1>
         <p class="page-subtitle">A live view of incidents, service health, and system activity.</p>
       </div>
-      <a href="incidents.html" class="btn btn-primary">View all incidents <span aria-hidden="true">→</span></a>
+      <div class="page-header-actions">
+  <button type="button" id="report-incident-btn" class="btn btn-primary">
+    <span aria-hidden="true">+</span> Report Incident
+  </button>
+
+  <a href="incidents.html" class="btn btn-secondary">
+    View all incidents <span aria-hidden="true">→</span>
+  </a>
+</div>
     </section>
 
     <div id="dashboard-alert" class="alert" style="display:none"></div>
@@ -65,6 +73,79 @@
   </main>
 
   <footer class="app-footer"><span>SENTINEL <span class="footer-separator">/</span> Incident monitoring</span><span>Real-time monitoring · RethinkDB</span></footer>
+<!-- Report Incident Modal -->
+<div id="report-incident-modal" class="report-modal" hidden>
+  <div class="report-modal-backdrop" data-close-report></div>
+
+  <section
+    class="report-modal-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="report-incident-title"
+  >
+    <div class="report-modal-header">
+      <div>
+        <h2 id="report-incident-title">Report Incident</h2>
+        <p>Submit a new service incident to Sentinel.</p>
+      </div>
+      <button
+        type="button"
+        id="close-report-incident"
+        class="report-close-btn"
+        aria-label="Close form"
+      >×</button>
+    </div>
+
+    <form id="report-incident-form">
+      <label for="report-service">Service name</label>
+      <input
+        id="report-service"
+        name="service"
+        value="payment-service"
+        maxlength="100"
+        required
+      >
+
+      <label for="report-type">Incident type</label>
+      <input
+        id="report-type"
+        name="type"
+        value="payment_failure"
+        maxlength="100"
+        required
+      >
+
+      <label for="report-severity">Severity</label>
+      <select id="report-severity" name="severity" required>
+        <option value="LOW">Low</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="HIGH" selected>High</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
+
+      <label for="report-message">Description</label>
+      <textarea
+        id="report-message"
+        name="message"
+        rows="4"
+        maxlength="2000"
+        required
+      >Payment gateway is returning errors</textarea>
+
+      <p id="report-incident-feedback" role="status" aria-live="polite"></p>
+
+      <div class="report-form-actions">
+        <button type="button" id="cancel-report-incident" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" id="submit-report-incident" class="btn btn-primary">
+          Submit Incident
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
   <script src="script.js"></script>
 </body>
 </html>
