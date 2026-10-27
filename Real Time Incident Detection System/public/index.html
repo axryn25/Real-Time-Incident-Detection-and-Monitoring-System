@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+  <title>Sentinel — Incident Monitoring</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-container">
+      <a class="brand" href="index.html" aria-label="Sentinel dashboard home">
+        <span class="brand-mark" aria-hidden="true">ϟ</span>
+        <span class="brand-copy"><strong>SENTINEL</strong><small>REAL-TIME INCIDENT DETECTION &amp; MONITORING</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="index.html" class="active">Dashboard</a>
+        <a href="incidents.html">All Incidents</a>
+        <div id="connection-pill" class="connection-pill"><span class="connection-dot"></span><span id="connection-text">Connecting...</span></div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="dashboard-shell">
+    <section class="page-header">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> OPERATIONS CENTER</div>
+        <h1 class="page-title">Operational Overview</h1>
+        <p class="page-subtitle">A live view of incidents, service health, and system activity.</p>
+      </div>
+      <div class="page-header-actions">
+  <button type="button" id="report-incident-btn" class="btn btn-primary">
+    <span aria-hidden="true">+</span> Report Incident
+  </button>
+
+  <a href="incidents.html" class="btn btn-secondary">
+    View all incidents <span aria-hidden="true">→</span>
+  </a>
+</div>
+    </section>
+
+    <div id="dashboard-alert" class="alert" style="display:none"></div>
+
+    <section class="metrics-grid" id="metrics-container" aria-label="Incident metrics">
+      <article class="metric-card total"><div class="metric-top"><span class="metric-label">Total incidents</span><span class="metric-icon">▤</span></div><span id="metric-total" class="metric-value">--</span><span class="metric-foot">All recorded incidents</span></article>
+      <article class="metric-card open"><div class="metric-top"><span class="metric-label">Open incidents</span><span class="metric-icon">!</span></div><span id="metric-open" class="metric-value">--</span><span class="metric-foot">Require attention</span></article>
+      <article class="metric-card acknowledged"><div class="metric-top"><span class="metric-label">Acknowledged</span><span class="metric-icon">◷</span></div><span id="metric-ack" class="metric-value">--</span><span class="metric-foot">Being investigated</span></article>
+      <article class="metric-card resolved"><div class="metric-top"><span class="metric-label">Resolved</span><span class="metric-icon">✓</span></div><span id="metric-res" class="metric-value">--</span><span class="metric-foot">Closed incidents</span></article>
+    </section>
+
+    <section class="overview-grid">
+      <article class="card service-health-card">
+        <div class="section-heading"><div><span class="section-kicker">INFRASTRUCTURE</span><h2 class="card-title">Service health</h2><p class="section-description">Status inferred from unresolved incidents.</p></div><button id="refresh-health-btn" class="btn btn-quiet" type="button"><span aria-hidden="true">↻</span> Refresh</button></div>
+        <div id="service-health-container"><p class="service-health-message">Loading service health...</p></div>
+      </article>
+
+      <article class="card analytics-card">
+        <div class="section-heading"><div><span class="section-kicker">SIGNAL BREAKDOWN</span><h2 class="card-title">Incident analytics</h2><p class="section-description">Distribution by severity and affected service.</p></div><span class="live-tag"><span class="connection-dot"></span> Live data</span></div>
+        <div class="analytics-grid">
+          <div class="analytics-panel"><h3>By severity</h3><div id="severity-analytics"><p class="muted">Loading analytics...</p></div></div>
+          <div class="analytics-panel"><h3>By service</h3><div id="service-analytics"><p class="muted">Loading analytics...</p></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="card recent-card">
+      <div class="section-heading table-heading"><div><span class="section-kicker">LATEST ACTIVITY</span><h2 class="card-title">Recent incidents</h2><p class="section-description">The latest incident records across your services.</p></div><a href="incidents.html" class="btn btn-secondary">All incidents <span aria-hidden="true">→</span></a></div>
+      <div class="table-responsive"><table><thead><tr><th>Incident / Type</th><th>Service</th><th>Severity</th><th>Status</th><th>Last seen</th><th>Action</th></tr></thead><tbody id="recent-incidents-body"><tr><td colspan="6" class="table-empty">Loading recent incidents...</td></tr></tbody></table></div>
+    </section>
+
+    <section class="architecture-note"><span class="note-icon" aria-hidden="true">⌁</span><div><strong>Powered by RethinkDB changefeeds</strong><p>Sentinel streams incident mutations through Server-Sent Events, so the dashboard can refresh when records change instead of relying only on repeated polling.</p></div><span class="architecture-code">SSE · CHANGEFEEDS</span></section>
+  </main>
+
+  <footer class="app-footer"><span>SENTINEL <span class="footer-separator">/</span> Incident monitoring</span><span>Real-time monitoring · RethinkDB</span></footer>
+<!-- Report Incident Modal -->
+<div id="report-incident-modal" class="report-modal" hidden>
+  <div class="report-modal-backdrop" data-close-report></div>
+
+  <section
+    class="report-modal-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="report-incident-title"
+  >
+    <div class="report-modal-header">
+      <div>
+        <h2 id="report-incident-title">Report Incident</h2>
+        <p>Submit a new service incident to Sentinel.</p>
+      </div>
+      <button
+        type="button"
+        id="close-report-incident"
+        class="report-close-btn"
+        aria-label="Close form"
+      >×</button>
+    </div>
+
+    <form id="report-incident-form">
+      <label for="report-service">Service name</label>
+      <input
+        id="report-service"
+        name="service"
+        value="payment-service"
+        maxlength="100"
+        required
+      >
+
+      <label for="report-type">Incident type</label>
+      <input
+        id="report-type"
+        name="type"
+        value="payment_failure"
+        maxlength="100"
+        required
+      >
+
+      <label for="report-severity">Severity</label>
+      <select id="report-severity" name="severity" required>
+        <option value="LOW">Low</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="HIGH" selected>High</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
+
+      <label for="report-message">Description</label>
+      <textarea
+        id="report-message"
+        name="message"
+        rows="4"
+        maxlength="2000"
+        required
+      >Payment gateway is returning errors</textarea>
+
+      <p id="report-incident-feedback" role="status" aria-live="polite"></p>
+
+      <div class="report-form-actions">
+        <button type="button" id="cancel-report-incident" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" id="submit-report-incident" class="btn btn-primary">
+          Submit Incident
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
